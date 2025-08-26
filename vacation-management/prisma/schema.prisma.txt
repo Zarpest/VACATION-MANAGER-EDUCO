@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  password          String?
+  role              Role     @default(EMPLOYEE)
+  department        String?
+  position          String?
+  managerId         String?
+  manager           User?    @relation("ManagerEmployee", fields: [managerId], references: [id])
+  employees         User[]   @relation("ManagerEmployee")
+  vacationDaysTotal Int      @default(22)
+  vacationDaysUsed  Int      @default(0)
+  specialHoursTotal Int      @default(24)
+  specialHoursUsed  Int      @default(0)
+  hireDate          DateTime?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  requests          Request[]
+  approvals         Request[] @relation("Approver")
+  checkIns          CheckIn[]
+  auditLogs         AuditLog[]
+}
+
+model Request {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  type        RequestType
+  startDate   DateTime
+  endDate     DateTime
+  days        Float
+  hours       Float?
+  reason      String?
+  status      RequestStatus @default(PENDING)
+  approverId  String?
+  approver    User?         @relation("Approver", fields: [approverId], references: [id])
+  approvedAt  DateTime?
+  comments    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  checkIn   DateTime
+  checkOut  DateTime?
+  date      DateTime
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  targetId  String?
+  details   Json?
+  timestamp DateTime @default(now())
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  HR
+  MANAGER
+  EMPLOYEE
+}
+
+enum RequestType {
+  VACATION
+  SICK_LEAVE
+  PERSONAL
+  SPECIAL_HOURS
+  MATERNITY_LEAVE
+  PATERNITY_LEAVE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
